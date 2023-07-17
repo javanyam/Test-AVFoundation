@@ -19,6 +19,8 @@ class CameraView: UIView {
     private var cameraButton: UIButton!
     var transitionButton: UIButton!
     
+    var testButton: UIButton!
+    
     //MARK: - Initialize
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -26,6 +28,8 @@ class CameraView: UIView {
         addStackView()
         addCameraButton()
         addTransitionButton()
+        
+        addTestButton()
     }
     
     required init?(coder: NSCoder) {
@@ -99,6 +103,21 @@ extension CameraView {
             $0.centerY.equalTo(cameraButton.snp.centerY)
         }
     }
+    
+    private func addTestButton() {
+        testButton = UIButton()
+        testButton.backgroundColor = .systemYellow
+        testButton.addTarget(self, action: #selector(tapUltraButton), for: .touchUpInside)
+        
+        addSubview(testButton)
+        
+        testButton.snp.makeConstraints {
+            $0.width.height.equalTo(50)
+            $0.left.equalToSuperview().inset(50)
+            $0.centerY.equalTo(cameraButton.snp.centerY)
+        }
+        
+    }
 }
 
 extension CameraView {
@@ -130,5 +149,12 @@ extension CameraView {
               let superViewController = superView.next as? CameraViewController else { return }
         
         superViewController.switchCameraInput(sender)
+    }
+    
+    @objc private func tapUltraButton(_ sender: UIButton) {
+        guard let superView = superview,
+              let superViewController = superView.next as? CameraViewController else { return }
+        
+        superViewController.tapUltraButton(sender)
     }
 }

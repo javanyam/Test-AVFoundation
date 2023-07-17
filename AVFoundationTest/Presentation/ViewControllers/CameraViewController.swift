@@ -12,16 +12,19 @@ import Photos
 
 class CameraViewController: UIViewController {
     
-    private var takePicture = false
     private var isBackCamera = true
     
+    private var discoverySession: AVCaptureDevice.DiscoverySession!
     private var captureFrontDevice: AVCaptureDevice!
     private var captureBackDevice: AVCaptureDevice!
+    private var captureUltraDevice: AVCaptureDevice!
     private var backCameraInput: AVCaptureDeviceInput!
     private var frontCameraInput: AVCaptureDeviceInput!
+    private var ultraCameraInput: AVCaptureDeviceInput!
     private var session: AVCaptureSession?
     private var videoOutput: AVCaptureVideoDataOutput!
     private var videoConnection: AVCaptureConnection!
+    private var sampleBuffer: CMSampleBuffer!
     
     private var cameraView: CameraView!
     
@@ -31,6 +34,7 @@ class CameraViewController: UIViewController {
         
         setSession()
         addCameraView()
+//        addPinchGesture()
     }
 }
 
@@ -51,6 +55,11 @@ extension CameraViewController {
 extension CameraViewController {
     
     //MARK: - Function
+    private func addPinchGesture() {
+        let pinch = UIPinchGestureRecognizer(target: self, action: #selector(handlePinchCamera(_:)))
+        self.view.addGestureRecognizer(pinch)
+    }
+    
     private func setSession() {
         do {
             session = AVCaptureSession()
@@ -73,6 +82,7 @@ extension CameraViewController {
     private func setDeviceInput(session: AVCaptureSession) {
         captureBackDevice = getDevice(in: .back)
         captureFrontDevice = getDevice(in: .front)
+        captureUltraDevice = AVCaptureDevice.default(.builtInUltraWideCamera, for: .video, position: .back)
         
         guard let backCameraDeviceInput = try? AVCaptureDeviceInput(device: captureBackDevice) else {
             fatalError("후면 카메라로 인풋설정이 불가능합니다.")
@@ -87,6 +97,14 @@ extension CameraViewController {
         }
         frontCameraInput = frontCameraDeviceInput
         if !session.canAddInput(frontCameraInput) {
+            fatalError("전면 카메라 설치가 되지 않습니다.")
+        }
+        
+        guard let ultraCameraDeviceInput = try? AVCaptureDeviceInput(device: captureUltraDevice) else {
+            fatalError("전면 카메라로 인풋설정이 불가능합니다.")
+        }
+        ultraCameraInput = ultraCameraDeviceInput
+        if !session.canAddInput(ultraCameraInput) {
             fatalError("전면 카메라 설치가 되지 않습니다.")
         }
         
@@ -125,10 +143,41 @@ extension CameraViewController {
     }
     
     private func setZoom() {
-        
+        cameraView.zoomButton.setImage(captureBackDevice.videoZoomFactor == 2.0 ? customImage(.zoom_in) : customImage(.zoom_out), for: .normal)
     }
     
     //MARK: - Selector
+    @objc func handlePinchCamera(_ pinch: UIPinchGestureRecognizer) {
+        guard let device = captureBackDevice else { return }
+        
+        var initialScale: CGFloat = device.videoZoomFactor
+        
+        let minAvailableZoomScale = 1.0
+        let maxAvailableZoomScale = 5.0
+        
+        do {
+            try device.lockForConfiguration()
+            if (pinch.state == UIPinchGestureRecognizer.State.began) {
+                initialScale = device.videoZoomFactor
+            }
+            else {
+                if (initialScale * (pinch.scale) < minAvailableZoomScale) {
+                    device.videoZoomFactor = minAvailableZoomScale
+                }
+                else if (initialScale * (pinch.scale) > maxAvailableZoomScale) {
+                    device.videoZoomFactor = maxAvailableZoomScale
+                }
+                else {
+                    device.videoZoomFactor = initialScale * (pinch.scale)
+                }
+            }
+            pinch.scale = 1.0
+        } catch {
+            return
+        }
+        device.unlockForConfiguration()
+    }
+    
     @objc func switchTorch(_ sender: UIButton) {
         if captureBackDevice.hasTorch, isBackCamera {
             do {
@@ -160,13 +209,12 @@ extension CameraViewController {
             do {
                 try device.lockForConfiguration()
                 device.videoZoomFactor = device.videoZoomFactor == zoomInScale ? zoomOutScale : zoomInScale
-                
             } catch {
                 return
             }
             device.unlockForConfiguration()
             
-            cameraView.zoomButton.setImage(device.videoZoomFactor == zoomInScale ? customImage(.zoom_in) : customImage(.zoom_out), for: .normal)
+            setZoom()
         }
     }
     
@@ -197,58 +245,32 @@ extension CameraViewController {
         cameraView.transitionButton.isUserInteractionEnabled = true
     }
     
-    @objc func handlePinchCamera(_ pinch: UIPinchGestureRecognizer) {
-        if let device = captureBackDevice {
-            
-            var initialScale: CGFloat = device.videoZoomFactor
-            let minAvailableZoomScale = 1.0
-            let maxAvailableZoomScale = 5.0
-            
-            do {
-                try device.lockForConfiguration()
-                if (pinch.state == UIPinchGestureRecognizer.State.began) {
-                    initialScale = device.videoZoomFactor
-                }
-                else {
-                    if (initialScale * (pinch.scale) < minAvailableZoomScale) {
-                        device.videoZoomFactor = minAvailableZoomScale
-                    }
-                    else if (initialScale * (pinch.scale) > maxAvailableZoomScale) {
-                        device.videoZoomFactor = maxAvailableZoomScale
-                    }
-                    else {
-                        device.videoZoomFactor = initialScale * (pinch.scale)
-                    }
-                }
-                pinch.scale = 1.0
-            } catch {
-                return
-            }
-            device.unlockForConfiguration()
+    @objc func tapUltraButton(_ sender: UIButton) {
+        
+        guard let session = session else { return }
+      
+        session.beginConfiguration()
+        
+        if isBackCamera {
+            session.removeInput(backCameraInput)
+            session.addInput(ultraCameraInput)
+            isBackCamera = false
+        } else {
+            session.removeInput(ultraCameraInput)
+            session.addInput(backCameraInput)
+            isBackCamera = true
         }
+        
+        session.commitConfiguration()
+        session.startRunning()
     }
     
     @objc func tapVideoCapture(_ sender: UIButton) {
-        takePicture = !takePicture
-    }
-    
-}
-
-extension CameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate {
-    
-    //MARK: - Delegate
-    func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
-        if !takePicture {
-            return
-        }
-        
         self.session!.stopRunning()
         
         guard let cvBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else {
             return
         }
-        
-        self.takePicture = false
         
         DispatchQueue.main.async { [self] in
             var uiImage: UIImage
@@ -264,5 +286,14 @@ extension CameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate {
             
             moveToPictureViewController(image: uiImage)
         }
+    }
+    
+}
+
+extension CameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate {
+    
+    //MARK: - Delegate
+    func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
+        self.sampleBuffer = sampleBuffer
     }
 }
