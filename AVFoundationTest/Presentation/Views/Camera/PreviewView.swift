@@ -11,12 +11,12 @@ import AVFoundation
 
 class PreviewView: UIView {
 
-    private var preview: AVCaptureVideoPreviewLayer!
+    var preview: AVCaptureVideoPreviewLayer!
     private var session: AVCaptureSession!
     private var viewController: UIViewController!
 
     //MARK: - Initialize
-    convenience init(viewController: UIViewController, session: AVCaptureSession) {
+    convenience init(session: AVCaptureSession) {
         self.init()
         self.session = session
         self.viewController = viewController
@@ -40,8 +40,5 @@ extension PreviewView {
         preview = AVCaptureVideoPreviewLayer(session: session)
         preview.videoGravity = .resizeAspectFill
         preview.connection?.videoOrientation = .portrait
-        preview.frame = viewController.view.frame
-        
-        viewController.view.layer.addSublayer(preview)
     }
 }

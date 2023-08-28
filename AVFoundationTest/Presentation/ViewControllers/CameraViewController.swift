@@ -37,7 +37,10 @@ extension CameraViewController {
     
     //MARK: - Add View
     private func addPreviewLayer() {
-        previewView = PreviewView(viewController: self, session: captureSession.session)
+        previewView = PreviewView(session: captureSession.session)
+        previewView.preview.frame = view.frame
+        
+        view.layer.addSublayer(previewView.preview)
     }
     
     private func addCameraView() {
@@ -132,13 +135,14 @@ extension CameraViewController {
     }
     
     @objc func switchZoom(_ sender: UIButton) {
-        if let device = captureSession.captureBackDevice {
-            let zoomOutScale = 1.0
-            let zoomInScale = 2.0
+        if let device = captureSession.captureBackDevice,
+           device.deviceType == .builtInDualWideCamera {
+            let zoomOutScale = 2.0
+            let zoomInScale = 3.0
             
             do {
                 try device.lockForConfiguration()
-                device.videoZoomFactor = device.videoZoomFactor == zoomInScale ? zoomOutScale : zoomInScale
+                device.ramp(toVideoZoomFactor: device.videoZoomFactor == zoomInScale ? zoomOutScale : zoomInScale, withRate: 2.0)
             } catch {
                 return
             }
@@ -159,6 +163,7 @@ extension CameraViewController {
             cameraView.torchButton.isHidden = true
             cameraView.zoomButton.isHidden = true
             isBackCamera = false
+            captureSession.videoOutput.connections.first?.videoOrientation = .portrait
         } else {
             session.removeInput(captureSession.frontCameraInput)
             session.addInput(captureSession.backCameraInput)
@@ -166,7 +171,7 @@ extension CameraViewController {
             cameraView.zoomButton.isHidden = false
             isBackCamera = true
         }
-        captureSession.videoOutput.connections.first?.videoOrientation = .portrait
+        
         captureSession.videoOutput.connections.first?.isVideoMirrored = !isBackCamera
         
         session.commitConfiguration()
@@ -175,7 +180,7 @@ extension CameraViewController {
     }
     
     @objc func tapVideoCapture(_ sender: UIButton) {
-        captureSession.tapVideoCapture(sender)
+        captureSession.tapVideoCapture(isBack: isBackCamera)
         moveToPictureViewController(image: captureSession.uiImage)
     }
 }

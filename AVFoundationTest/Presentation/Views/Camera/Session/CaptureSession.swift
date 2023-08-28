@@ -10,8 +10,6 @@ import AVFoundation
 
 class CaptureSession: NSObject {
     
-    private var isBackCamera = true
-    
     private var discoverySession: AVCaptureDevice.DiscoverySession!
     var captureFrontDevice: AVCaptureDevice!
     var captureBackDevice: AVCaptureDevice!
@@ -99,13 +97,22 @@ extension CaptureSession {
     }
     
     //MARK: - Selector
-    @objc func tapVideoCapture(_ sender: UIButton) {
+    func tapVideoCapture(isBack: Bool) {
         session.stopRunning()
         
         guard let cvBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
         let ciImage = CIImage(cvPixelBuffer: cvBuffer)
+        guard let cgImage = CIContext().createCGImage(ciImage, from: ciImage.extent) else { return }
+        let imageOrientation = getImageOrientation()
         
-        uiImage = convertCIImageToUIImage(ciImage: ciImage)
+        CMSampleBufferInvalidate(sampleBuffer)
+//        CFRelease(sampleBuffer)
+        
+        if isBack {
+            uiImage = UIImage(cgImage: cgImage, scale: 1.0, orientation: imageOrientation)
+        } else {
+            uiImage = UIImage(ciImage: ciImage, scale: 1.0, orientation: imageOrientation)
+        }
     }
 }
 
@@ -113,6 +120,12 @@ extension CaptureSession: AVCaptureVideoDataOutputSampleBufferDelegate {
     
     //MARK: - Delegate
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
-        self.sampleBuffer = sampleBuffer
+        autoreleasepool{
+            self.sampleBuffer = sampleBuffer
+        }
+    }
+    
+    func captureOutput(_ output: AVCaptureOutput, didDrop sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
+        
     }
 }

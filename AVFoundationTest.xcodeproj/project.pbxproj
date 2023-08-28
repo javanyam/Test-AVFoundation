@@ -57,12 +57,22 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		8436ABE12A6506C9005051E7 /* ViewModels */ = {
+		8436ABE42A652BBA005051E7 /* Camera */ = {
+			isa = PBXGroup;
+			children = (
+				8436ABE52A652BCA005051E7 /* Session */,
+				84636CB12A5D3CCC008B27F6 /* CameraView.swift */,
+				8436ABDF2A64E55C005051E7 /* PreviewView.swift */,
+			);
+			path = Camera;
+			sourceTree = "<group>";
+		};
+		8436ABE52A652BCA005051E7 /* Session */ = {
 			isa = PBXGroup;
 			children = (
 				8436ABE22A650741005051E7 /* CaptureSession.swift */,
 			);
-			path = ViewModels;
+			path = Session;
 			sourceTree = "<group>";
 		};
 		84636C572A57F996008B27F6 = {
@@ -106,7 +116,6 @@
 		84636CA42A5D2CFB008B27F6 /* Presentation */ = {
 			isa = PBXGroup;
 			children = (
-				8436ABE12A6506C9005051E7 /* ViewModels */,
 				84636CAB2A5D34F7008B27F6 /* Views */,
 				84636CAA2A5D34EB008B27F6 /* ViewControllers */,
 			);
@@ -152,9 +161,8 @@
 		84636CAB2A5D34F7008B27F6 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				8436ABE42A652BBA005051E7 /* Camera */,
 				84636CAC2A5D3539008B27F6 /* PictureView.swift */,
-				84636CB12A5D3CCC008B27F6 /* CameraView.swift */,
-				8436ABDF2A64E55C005051E7 /* PreviewView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
